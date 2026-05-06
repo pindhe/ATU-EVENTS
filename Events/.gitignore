@@ -1,0 +1,32 @@
+# Flutter
+.dart_tool/
+.packages
+.pub-cache/
+.pub/
+build/
+ios/.generated/
+ios/Flutter/Generated.xcconfig
+ios/Flutter/flutter_export_environment.sh
+ios/Flutter/flutter_bundle_flags.sh
+ios/Pods/
+android/.gradle/
+android/local.properties
+android/vendor/
+android/app/src/main/res/values/google-services.json
+.flutter-plugins
+.flutter-plugins-dependencies
+
+# Python / Django
+__pycache__/
+*.py[cod]
+*$py.class
+.env
+db.sqlite3
+media/
+static/
+venv/
+.venv/
+env/
+.idea/
+.vscode/
+*.log
