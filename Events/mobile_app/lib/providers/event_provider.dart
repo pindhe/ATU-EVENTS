@@ -32,8 +32,14 @@ class EventProvider with ChangeNotifier {
   List<Event> getVisibleEvents(String? studentClassId) {
     return _events.where((e) {
       if (!e.isPublished) return false;
+      
+      // Admin events are visible to everyone
+      if (e.createdByUsername?.toLowerCase() == 'admin') return true;
+      
+      // Teacher events visibility
       if (e.visibility == EventVisibility.public) return true;
       if (e.visibility == EventVisibility.local && e.assignedClassId == studentClassId) return true;
+      
       return false;
     }).toList();
   }

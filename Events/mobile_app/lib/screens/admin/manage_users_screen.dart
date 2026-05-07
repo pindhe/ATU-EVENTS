@@ -395,6 +395,7 @@ class _CreateUserDialogState extends State<CreateUserDialog> {
         role: _role,
         firstName: _firstName,
         lastName: _lastName,
+        classId: _selectedClassId,
       );
       
       // Register in AuthProvider so they can actually log in
@@ -461,7 +462,7 @@ class _CreateUserDialogState extends State<CreateUserDialog> {
                     });
                   },
                 ),
-                if (_role == 'teacher') ...[
+                if (_role == 'teacher' || _role == 'normal_user') ...[
                   const SizedBox(height: 16),
                   Consumer<ClassProvider>(
                     builder: (context, classProvider, _) {

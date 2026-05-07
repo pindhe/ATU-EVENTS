@@ -3,10 +3,6 @@ import 'package:provider/provider.dart';
 import '../../models/event.dart';
 import '../../providers/event_provider.dart';
 
-const Color apexPrimary = Color(0xFF5A67D8);
-const Color apexBg = Color(0xFFF8F9FF);
-const Color apexText = Color(0xFF0B1C30);
-
 class PaymentScreen extends StatefulWidget {
   final Event event;
   const PaymentScreen({Key? key, required this.event}) : super(key: key);
@@ -17,6 +13,7 @@ class PaymentScreen extends StatefulWidget {
 
 class _PaymentScreenState extends State<PaymentScreen> {
   bool _isProcessing = false;
+  final Color apexPrimary = const Color(0xFF5A67D8);
 
   void _processPayment() async {
     setState(() => _isProcessing = true);
@@ -35,19 +32,21 @@ class _PaymentScreenState extends State<PaymentScreen> {
   }
 
   void _showSuccessDialog() {
+    final theme = Theme.of(context);
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
+        backgroundColor: theme.cardColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             const Icon(Icons.check_circle, color: Colors.green, size: 80),
             const SizedBox(height: 24),
-            const Text("Payment Successful!", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+            Text("Payment Successful!", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: theme.textTheme.bodyLarge?.color)),
             const SizedBox(height: 12),
-            Text("You have successfully booked a ticket for ${widget.event.title}.", textAlign: TextAlign.center, style: TextStyle(color: Colors.grey[600])),
+            Text("You have successfully booked a ticket for ${widget.event.title}.", textAlign: TextAlign.center, style: TextStyle(color: Colors.grey[500])),
             const SizedBox(height: 32),
             SizedBox(
               width: double.infinity,
@@ -68,28 +67,31 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final textColor = theme.textTheme.bodyLarge?.color ?? Colors.black87;
+
     return Scaffold(
-      backgroundColor: apexBg,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text("Checkout", style: TextStyle(color: apexText, fontWeight: FontWeight.bold)),
+        title: Text("Checkout", style: TextStyle(color: textColor, fontWeight: FontWeight.bold)),
         backgroundColor: Colors.transparent,
         elevation: 0,
-        iconTheme: const IconThemeData(color: apexText),
+        iconTheme: IconThemeData(color: textColor),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildOrderSummary(),
+            _buildOrderSummary(theme, textColor),
             const SizedBox(height: 32),
-            const Text("Payment Method", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: apexText)),
+            Text("Payment Method", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textColor)),
             const SizedBox(height: 16),
             _buildPaymentMethodCard(),
             const SizedBox(height: 32),
-            const Text("Card Details", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: apexText)),
+            Text("Card Details", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textColor)),
             const SizedBox(height: 16),
-            _buildCardInputFields(),
+            _buildCardInputFields(theme),
             const SizedBox(height: 48),
             _buildPayButton(),
           ],
@@ -98,10 +100,10 @@ class _PaymentScreenState extends State<PaymentScreen> {
     );
   }
 
-  Widget _buildOrderSummary() {
+  Widget _buildOrderSummary(ThemeData theme, Color textColor) {
     return Container(
       padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 15, offset: const Offset(0, 5))]),
+      decoration: BoxDecoration(color: theme.cardColor, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 15, offset: const Offset(0, 5))]),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -109,7 +111,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text("Event Ticket", style: TextStyle(fontSize: 16, color: Colors.grey)),
-              Text("${widget.event.title}", style: const TextStyle(fontWeight: FontWeight.bold)),
+              Text("${widget.event.title}", style: TextStyle(fontWeight: FontWeight.bold, color: textColor)),
             ],
           ),
           const SizedBox(height: 12),
@@ -118,8 +120,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text("Total Amount", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: apexText)),
-              Text("\$${widget.event.price?.toStringAsFixed(2) ?? '0.00'}", style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: apexPrimary)),
+              Text("Total Amount", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textColor)),
+              Text("\$${widget.event.price?.toStringAsFixed(2) ?? '0.00'}", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: apexPrimary)),
             ],
           ),
         ],
@@ -133,46 +135,47 @@ class _PaymentScreenState extends State<PaymentScreen> {
       decoration: BoxDecoration(color: apexPrimary.withOpacity(0.05), borderRadius: BorderRadius.circular(15), border: Border.all(color: apexPrimary.withOpacity(0.2))),
       child: Row(
         children: [
-          const Icon(Icons.credit_card, color: apexPrimary),
+          Icon(Icons.credit_card, color: apexPrimary),
           const SizedBox(width: 16),
-          const Text("Credit / Debit Card", style: TextStyle(fontWeight: FontWeight.bold, color: apexPrimary)),
+          Text("Credit / Debit Card", style: TextStyle(fontWeight: FontWeight.bold, color: apexPrimary)),
           const Spacer(),
-          const Icon(Icons.check_circle, color: apexPrimary, size: 20),
+          Icon(Icons.check_circle, color: apexPrimary, size: 20),
         ],
       ),
     );
   }
 
-  Widget _buildCardInputFields() {
+  Widget _buildCardInputFields(ThemeData theme) {
     return Column(
       children: [
-        _buildTextField("Cardholder Name", Icons.person_outline),
+        _buildTextField(theme, "Cardholder Name", Icons.person_outline),
         const SizedBox(height: 16),
-        _buildTextField("Card Number", Icons.credit_card, keyboardType: TextInputType.number),
+        _buildTextField(theme, "Card Number", Icons.credit_card, keyboardType: TextInputType.number),
         const SizedBox(height: 16),
         Row(
           children: [
-            Expanded(child: _buildTextField("Expiry Date", Icons.calendar_today, keyboardType: TextInputType.datetime)),
+            Expanded(child: _buildTextField(theme, "Expiry Date", Icons.calendar_today, keyboardType: TextInputType.datetime)),
             const SizedBox(width: 16),
-            Expanded(child: _buildTextField("CVV", Icons.lock_outline, keyboardType: TextInputType.number)),
+            Expanded(child: _buildTextField(theme, "CVV", Icons.lock_outline, keyboardType: TextInputType.number)),
           ],
         ),
       ],
     );
   }
 
-  Widget _buildTextField(String label, IconData icon, {TextInputType? keyboardType}) {
+  Widget _buildTextField(ThemeData theme, String label, IconData icon, {TextInputType? keyboardType}) {
     return TextFormField(
       keyboardType: keyboardType,
+      style: TextStyle(color: theme.textTheme.bodyLarge?.color),
       decoration: InputDecoration(
         labelText: label,
         prefixIcon: Icon(icon, color: apexPrimary, size: 20),
         labelStyle: TextStyle(color: Colors.grey[600], fontSize: 14),
         filled: true,
-        fillColor: Colors.white,
+        fillColor: theme.cardColor,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
         enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: apexPrimary, width: 1.5)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: apexPrimary, width: 1.5)),
       ),
     );
   }

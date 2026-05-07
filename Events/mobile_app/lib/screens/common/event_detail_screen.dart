@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'dart:io';
 import '../../models/event.dart';
 import '../user/checkout_screen.dart';
 import 'payment_screen.dart';
-
-const Color apexPrimary = Color(0xFF5A67D8);
-const Color apexBg = Color(0xFFF8F9FF);
-const Color apexText = Color(0xFF0B1C30);
 
 class EventDetailScreen extends StatelessWidget {
   final Event event;
@@ -15,23 +13,26 @@ class EventDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: apexBg,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: apexBg,
+        backgroundColor: theme.scaffoldBackgroundColor,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: apexText),
+          icon: Icon(Icons.arrow_back, color: theme.textTheme.bodyLarge?.color),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
+        title: Text(
           'Apex Events',
-          style: TextStyle(color: apexText, fontWeight: FontWeight.bold, fontSize: 18),
+          style: TextStyle(color: theme.textTheme.bodyLarge?.color, fontWeight: FontWeight.bold, fontSize: 18),
         ),
         centerTitle: true,
         actions: [
-          IconButton(icon: const Icon(Icons.bookmark_border, color: apexText), onPressed: () {}),
-          IconButton(icon: const Icon(Icons.notifications_none, color: apexText), onPressed: () {}),
+          IconButton(icon: Icon(Icons.bookmark_border, color: theme.textTheme.bodyLarge?.color), onPressed: () {}),
+          IconButton(icon: Icon(Icons.notifications_none, color: theme.textTheme.bodyLarge?.color), onPressed: () {}),
         ],
       ),
       body: SingleChildScrollView(
@@ -47,54 +48,65 @@ class EventDetailScreen extends StatelessWidget {
                 width: double.infinity,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(16),
-                  image: DecorationImage(
-                    image: event.imageUrl != null && event.imageUrl!.startsWith('http')
-                        ? NetworkImage(event.imageUrl!)
-                        : const NetworkImage('https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=800&q=80'),
-                    fit: BoxFit.cover,
-                    colorFilter: const ColorFilter.mode(Colors.black45, BlendMode.darken),
-                  ),
                 ),
-                child: Padding(
-                  padding: const EdgeInsets.all(20.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: Stack(
+                    fit: StackFit.expand,
                     children: [
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: event.isPublished ? Colors.green : Colors.orange,
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Text(
-                              event.isPublished ? 'PUBLISHED' : 'DRAFT',
-                              style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
-                            ),
+                      _buildHeaderImage(),
+                      Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [Colors.transparent, Colors.black.withOpacity(0.8)],
                           ),
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                            decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(20)),
-                            child: Text(
-                              DateFormat('MMM dd, yyyy').format(event.startTime),
-                              style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(20.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: event.isPublished ? Colors.green : Colors.orange,
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: Text(
+                                    event.isPublished ? 'PUBLISHED' : 'DRAFT',
+                                    style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                  decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(20)),
+                                  child: Text(
+                                    DateFormat('MMM dd, yyyy').format(event.startTime),
+                                    style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                                  ),
+                                ),
+                              ],
                             ),
-                          ),
-                        ],
-                      ),
-                      const Spacer(),
-                      Text(
-                        event.title,
-                        style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold, height: 1.1),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        event.description,
-                        style: const TextStyle(color: Colors.white, fontSize: 13),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
+                            const Spacer(),
+                            Text(
+                              event.title,
+                              style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold, height: 1.1),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              event.description,
+                              style: const TextStyle(color: Colors.white, fontSize: 13),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
@@ -108,27 +120,27 @@ class EventDetailScreen extends StatelessWidget {
               child: Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: theme.cardColor,
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4))],
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('About the Event', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: apexText)),
+                    Text('About the Event', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: theme.textTheme.bodyLarge?.color)),
                     const SizedBox(height: 12),
                     Text(
                       event.description,
-                      style: TextStyle(color: Colors.grey[700], fontSize: 13, height: 1.6),
+                      style: TextStyle(color: isDarkMode ? Colors.grey[400] : Colors.grey[700], fontSize: 13, height: 1.6),
                     ),
                     const SizedBox(height: 16),
                     Row(
                       children: [
-                        const Icon(Icons.category_outlined, size: 16, color: apexPrimary),
+                        const Icon(Icons.category_outlined, size: 16, color: Color(0xFF5A67D8)),
                         const SizedBox(width: 8),
                         Text('Category: ${event.categoryName ?? 'General'}', style: TextStyle(color: Colors.grey[600], fontSize: 13)),
                         const Spacer(),
-                        const Icon(Icons.person_outline, size: 16, color: apexPrimary),
+                        const Icon(Icons.person_outline, size: 16, color: Color(0xFF5A67D8)),
                         const SizedBox(width: 8),
                         Text('Organized by: ${event.createdByUsername ?? 'Admin'}', style: TextStyle(color: Colors.grey[600], fontSize: 13)),
                       ],
@@ -144,20 +156,20 @@ class EventDetailScreen extends StatelessWidget {
               child: Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: theme.cardColor,
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4))],
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Venue Information', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: apexText)),
+                    Text('Venue Information', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: theme.textTheme.bodyLarge?.color)),
                     const SizedBox(height: 8),
                     Row(
                       children: [
-                        const Icon(Icons.location_on_outlined, color: apexPrimary, size: 16),
+                        const Icon(Icons.location_on_outlined, color: Color(0xFF5A67D8), size: 16),
                         const SizedBox(width: 6),
-                        Text(event.location, style: TextStyle(fontSize: 13, color: Colors.grey[700])),
+                        Text(event.location, style: TextStyle(fontSize: 13, color: Colors.grey[600])),
                       ],
                     ),
                     const SizedBox(height: 16),
@@ -175,7 +187,7 @@ class EventDetailScreen extends StatelessWidget {
                         child: Container(
                           padding: const EdgeInsets.all(8),
                           decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-                          child: Icon(Icons.location_on, color: apexPrimary, size: 24),
+                          child: const Icon(Icons.location_on, color: Color(0xFF5A67D8), size: 24),
                         ),
                       ),
                     ),
@@ -187,8 +199,8 @@ class EventDetailScreen extends StatelessWidget {
                         icon: const Icon(Icons.directions, size: 16),
                         label: const Text('Get Directions'),
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: apexText,
-                          side: BorderSide(color: Colors.grey[300]!),
+                          foregroundColor: theme.textTheme.bodyLarge?.color,
+                          side: BorderSide(color: isDarkMode ? Colors.grey[800]! : Colors.grey[300]!),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                           padding: const EdgeInsets.symmetric(vertical: 12),
                         ),
@@ -204,150 +216,88 @@ class EventDetailScreen extends StatelessWidget {
       bottomSheet: (event.price == null || event.price == 0) 
         ? null 
         : Container(
-        margin: const EdgeInsets.all(20),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: const Color(0xFF0F1115),
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('REMAINING TICKETS', style: TextStyle(color: Colors.grey, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1)),
-            const SizedBox(height: 4),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.baseline,
-              textBaseline: TextBaseline.alphabetic,
-              children: [
-                Text('${(event.maxParticipants ?? 0) - event.currentParticipants}', style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
-                const SizedBox(width: 8),
-                Text('out of ${event.maxParticipants ?? 0}', style: TextStyle(color: Colors.grey[400], fontSize: 12)),
-              ],
-            ),
-            const SizedBox(height: 12),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(2),
-              child: LinearProgressIndicator(
-                value: (event.maxParticipants != null && event.maxParticipants! > 0) ? event.currentParticipants / event.maxParticipants! : 0,
-                backgroundColor: const Color(0xFF2A2D35),
-                valueColor: const AlwaysStoppedAnimation<Color>(apexPrimary),
-                minHeight: 4,
+        color: theme.scaffoldBackgroundColor,
+        padding: const EdgeInsets.all(20),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color(0xFF0F1115),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('REMAINING TICKETS', style: TextStyle(color: Colors.grey, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1)),
+              const SizedBox(height: 4),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.baseline,
+                textBaseline: TextBaseline.alphabetic,
+                children: [
+                  Text('${(event.maxParticipants ?? 0) - event.currentParticipants}', style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
+                  const SizedBox(width: 8),
+                  Text('out of ${event.maxParticipants ?? 0}', style: TextStyle(color: Colors.grey[400], fontSize: 12)),
+                ],
               ),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text('Selling fast! Book yours now.', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w500)),
-                ElevatedButton(
-                  onPressed: () {
-                    Navigator.push(context, MaterialPageRoute(builder: (_) => PaymentScreen(event: event)));
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: apexPrimary,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    minimumSize: Size.zero,
-                  ),
-                  child: const Text('Get Tickets', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 12),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(2),
+                child: LinearProgressIndicator(
+                  value: (event.maxParticipants != null && event.maxParticipants! > 0) ? event.currentParticipants / event.maxParticipants! : 0,
+                  backgroundColor: const Color(0xFF2A2D35),
+                  valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF5A67D8)),
+                  minHeight: 4,
                 ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSpeakerCard(String name, String role, String imageUrl) {
-    return Container(
-      height: 140,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        image: DecorationImage(
-          image: NetworkImage(imageUrl),
-          fit: BoxFit.cover,
-          colorFilter: const ColorFilter.mode(Colors.black45, BlendMode.darken),
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(12.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.end,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(name, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
-            Text(role, style: const TextStyle(color: apexPrimary, fontSize: 9, fontWeight: FontWeight.bold)),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildScheduleCard(String time, String title, String subtitle, bool isExpanded) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: isExpanded ? apexPrimary.withOpacity(0.3) : Colors.transparent),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4))],
-        ),
-        child: Column(
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                  decoration: BoxDecoration(color: const Color(0xFFE0E7FF), borderRadius: BorderRadius.circular(8)),
-                  child: Text(time, textAlign: TextAlign.center, style: const TextStyle(color: apexPrimary, fontSize: 11, fontWeight: FontWeight.bold)),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: apexText)),
-                      const SizedBox(height: 4),
-                      Text(subtitle, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
-                    ],
-                  ),
-                ),
-                Icon(isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down, color: Colors.grey),
-              ],
-            ),
-            if (isExpanded) ...[
-              const SizedBox(height: 16),
-              Text(
-                'An in-depth exploration of the next generation of transformer models and their practical applications in consumer robotics.',
-                style: TextStyle(color: Colors.grey[700], fontSize: 12, height: 1.5),
               ),
               const SizedBox(height: 12),
               Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(color: const Color(0xFFE0E7FF), borderRadius: BorderRadius.circular(12)),
-                    child: const Text('Keynote', style: TextStyle(color: apexPrimary, fontSize: 10, fontWeight: FontWeight.bold)),
-                  ),
-                  const SizedBox(width: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(color: const Color(0xFFF3E8FF), borderRadius: BorderRadius.circular(12)),
-                    child: const Text('High Priority', style: TextStyle(color: Color(0xFF9333EA), fontSize: 10, fontWeight: FontWeight.bold)),
+                  const Text('Selling fast! Book yours now.', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w500)),
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => PaymentScreen(event: event)));
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF5A67D8),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      minimumSize: Size.zero,
+                    ),
+                    child: const Text('Get Tickets', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                   ),
                 ],
               ),
-            ]
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
-}
 
+  Widget _buildHeaderImage() {
+    final String? url = event.imageUrl;
+    if (url == null || url.isEmpty) {
+      return Image.network(
+        'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=800&q=80',
+        fit: BoxFit.cover,
+      );
+    }
+
+    if (url.startsWith('http') || url.startsWith('blob:')) {
+      return Image.network(url, fit: BoxFit.cover, errorBuilder: (c, e, s) => _placeholderImage());
+    } else if (kIsWeb) {
+      return Image.network(url, fit: BoxFit.cover, errorBuilder: (c, e, s) => _placeholderImage());
+    } else {
+      return Image.file(File(url), fit: BoxFit.cover, errorBuilder: (c, e, s) => _placeholderImage());
+    }
+  }
+
+  Widget _placeholderImage() {
+    return Image.network(
+      'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=800&q=80',
+      fit: BoxFit.cover,
+    );
+  }
+}

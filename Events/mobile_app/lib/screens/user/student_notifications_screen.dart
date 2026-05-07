@@ -1,265 +1,233 @@
 import 'package:flutter/material.dart';
-
-const Color apexPrimary = Color(0xFF5A67D8);
-const Color apexBg = Color(0xFFF8F9FF);
-const Color apexText = Color(0xFF0B1C30);
+import 'package:provider/provider.dart';
+import '../../providers/notification_provider.dart';
+import '../../models/notification_model.dart';
+import 'package:intl/intl.dart';
 
 class StudentNotificationsScreen extends StatelessWidget {
   const StudentNotificationsScreen({Key? key}) : super(key: key);
 
+  final Color apexPrimary = const Color(0xFF5A67D8);
+
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final notificationProvider = Provider.of<NotificationProvider>(context);
+    final notifications = notificationProvider.notifications;
+
     return Scaffold(
-      backgroundColor: apexBg,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: apexBg,
+        backgroundColor: theme.scaffoldBackgroundColor,
         elevation: 0,
+        centerTitle: false,
         leading: IconButton(
-          icon: const Icon(Icons.menu, color: apexText),
+          icon: Icon(Icons.arrow_back_rounded, color: theme.textTheme.bodyLarge?.color),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          'Apex Events',
-          style: TextStyle(color: apexText, fontWeight: FontWeight.bold, fontSize: 22),
+        title: Text(
+          'Notifications',
+          style: TextStyle(
+            color: theme.textTheme.bodyLarge?.color,
+            fontWeight: FontWeight.bold,
+            fontSize: 24,
+          ),
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_none, color: apexText),
-            onPressed: () {},
+          if (notifications.isNotEmpty)
+            TextButton(
+              onPressed: () => notificationProvider.markAllAsRead(),
+              child: Text(
+                'Mark all read',
+                style: TextStyle(color: apexPrimary, fontWeight: FontWeight.bold),
+              ),
+            ),
+          const SizedBox(width: 8),
+        ],
+      ),
+      body: notifications.isEmpty
+          ? _buildEmptyState(theme)
+          : ListView.builder(
+              padding: const EdgeInsets.only(bottom: 40),
+              itemCount: notifications.length,
+              itemBuilder: (context, index) {
+                final notification = notifications[index];
+                return _buildNotificationItem(context, theme, notification, notificationProvider);
+              },
+            ),
+    );
+  }
+
+  Widget _buildEmptyState(ThemeData theme) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.notifications_none_rounded, size: 80, color: Colors.grey[300]),
+          const SizedBox(height: 16),
+          Text(
+            'All caught up!',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: theme.textTheme.bodyLarge?.color),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'You have no new notifications.',
+            style: TextStyle(color: Colors.grey[500], fontSize: 14),
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+    );
+  }
+
+  Widget _buildNotificationItem(BuildContext context, ThemeData theme, AppNotification notification, NotificationProvider provider) {
+    return Dismissible(
+      key: Key(notification.id),
+      onDismissed: (_) => provider.deleteNotification(notification.id),
+      background: Container(
+        color: Colors.red,
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 24),
+        child: const Icon(Icons.delete_outline_rounded, color: Colors.white),
+      ),
+      child: InkWell(
+        onTap: () => provider.markAsRead(notification.id),
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: notification.isRead ? Colors.transparent : apexPrimary.withOpacity(0.03),
+            border: Border(bottom: BorderSide(color: theme.dividerColor.withOpacity(0.05))),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildTypeIcon(notification),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('Notifications', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: apexText)),
-                        const SizedBox(height: 4),
-                        Text('Manage your event alerts and requests', style: TextStyle(fontSize: 13, color: Colors.grey[600], height: 1.2)),
+                        Expanded(
+                          child: Text(
+                            notification.title,
+                            style: TextStyle(
+                              fontWeight: notification.isRead ? FontWeight.w600 : FontWeight.bold,
+                              fontSize: 15,
+                              color: theme.textTheme.bodyLarge?.color,
+                            ),
+                          ),
+                        ),
+                        Text(
+                          _formatTimestamp(notification.timestamp),
+                          style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+                        ),
                       ],
                     ),
-                  ),
-                  Text('Mark all as\nread', textAlign: TextAlign.right, style: TextStyle(fontSize: 12, color: apexPrimary, fontWeight: FontWeight.w500)),
-                ],
+                    const SizedBox(height: 6),
+                    Text(
+                      notification.content,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: theme.textTheme.bodyMedium?.color?.withOpacity(0.7),
+                        height: 1.4,
+                      ),
+                    ),
+                    if (notification.type == NotificationType.networking)
+                      _buildNetworkingActions(theme),
+                  ],
+                ),
               ),
-            ),
-
-            // Event Reminders
-            _buildSectionTitle(Icons.calendar_today, 'EVENT REMINDERS'),
-            _buildEventReminderCard(),
-
-            // Networking Requests
-            _buildSectionTitle(Icons.people_outline, 'NETWORKING REQUESTS'),
-            _buildNetworkingCard('David Chen', 'CTO at InnovateX', '"I\'d love to connect and discuss your recent presentation on sustainable logistics."', 'https://images.unsplash.com/photo-1560250097-0b93528c311a?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&q=80', false),
-            _buildNetworkingCard('Sarah Jenkins', 'Director, Prime Logistics', '"Referred by your colleague. Interested in your VIP event management services."', 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&q=80', true),
-
-            // App Updates
-            _buildSectionTitle(Icons.phone_android, 'APP UPDATES'),
-            _buildAppUpdateCard(),
-            
-            const SizedBox(height: 40),
-          ],
+              if (!notification.isRead)
+                Container(
+                  margin: const EdgeInsets.only(left: 8, top: 4),
+                  width: 8,
+                  height: 8,
+                  decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+                ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildSectionTitle(IconData icon, String title) {
+  Widget _buildTypeIcon(AppNotification notification) {
+    IconData icon;
+    Color color;
+
+    switch (notification.type) {
+      case NotificationType.reminder:
+        icon = Icons.event_rounded;
+        color = Colors.orange;
+        break;
+      case NotificationType.networking:
+        icon = Icons.people_rounded;
+        color = apexPrimary;
+        break;
+      case NotificationType.update:
+        icon = Icons.rocket_launch_rounded;
+        color = Colors.green;
+        break;
+      case NotificationType.announcement:
+        icon = Icons.campaign_rounded;
+        color = Colors.blue;
+        break;
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        shape: BoxShape.circle,
+      ),
+      child: Icon(icon, color: color, size: 20),
+    );
+  }
+
+  Widget _buildNetworkingActions(ThemeData theme) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 10, 20, 12),
+      padding: const EdgeInsets.only(top: 16),
       child: Row(
         children: [
-          Icon(icon, size: 16, color: apexText),
-          const SizedBox(width: 8),
-          Text(title, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: apexText, letterSpacing: 1)),
+          ElevatedButton(
+            onPressed: () {},
+            style: ElevatedButton.styleFrom(
+              backgroundColor: apexPrimary,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              minimumSize: const Size(100, 36),
+            ),
+            child: const Text('Accept', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+          ),
+          const SizedBox(width: 12),
+          OutlinedButton(
+            onPressed: () {},
+            style: OutlinedButton.styleFrom(
+              foregroundColor: theme.textTheme.bodyLarge?.color,
+              side: BorderSide(color: theme.dividerColor),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              minimumSize: const Size(100, 36),
+            ),
+            child: const Text('Decline', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildEventReminderCard() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4))],
-        ),
-        child: Column(
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: Colors.black,
-                    borderRadius: BorderRadius.circular(8),
-                    image: const DecorationImage(
-                      image: NetworkImage('https://images.unsplash.com/photo-1540575467063-178a50c2df87?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&q=80'),
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('Global Tech\nSummit 2024', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: apexText, height: 1.2)),
-                      const SizedBox(height: 8),
-                      Text('Your primary session \'The Future of AI\' begins at 10:00 AM in Hall A. Don\'t forget your digital badge.', style: TextStyle(fontSize: 12, color: Colors.grey[700], height: 1.5)),
-                    ],
-                  ),
-                ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    const Text('Starting\nin 2h', textAlign: TextAlign.right, style: TextStyle(fontSize: 11, color: apexPrimary, fontWeight: FontWeight.w600)),
-                    const SizedBox(height: 8),
-                    Container(width: 6, height: 6, decoration: const BoxDecoration(color: apexPrimary, shape: BoxShape.circle)),
-                  ],
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () {},
-                icon: const Icon(Icons.confirmation_number_outlined, size: 16, color: Colors.white),
-                label: const Text('View Ticket', style: TextStyle(color: Colors.white)),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: apexPrimary,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  elevation: 0,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  String _formatTimestamp(DateTime timestamp) {
+    final now = DateTime.now();
+    final difference = now.difference(timestamp);
 
-  Widget _buildNetworkingCard(String name, String role, String message, String imageUrl, bool isUnread) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4))],
-        ),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                CircleAvatar(backgroundImage: NetworkImage(imageUrl), radius: 20),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: apexText)),
-                      Text(role, style: TextStyle(fontSize: 11, color: Colors.grey[600])),
-                    ],
-                  ),
-                ),
-                if (isUnread) Container(width: 6, height: 6, decoration: const BoxDecoration(color: apexPrimary, shape: BoxShape.circle)),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Text(message, style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic, color: Colors.grey[700], height: 1.5)),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () {},
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: apexPrimary,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      elevation: 0,
-                    ),
-                    child: const Text('Accept'),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () {},
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: apexText,
-                      side: BorderSide(color: Colors.grey[300]!),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                    ),
-                    child: const Text('Decline'),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAppUpdateCard() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4))],
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: const BoxDecoration(color: apexPrimary, shape: BoxShape.circle),
-              child: const Icon(Icons.rocket_launch, color: Colors.white, size: 20),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Apex Events v2.4 Now\nAvailable', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: apexText, height: 1.2)),
-                  const SizedBox(height: 8),
-                  Text(
-                    'We\'ve introduced real-time floor mapping and enhanced messaging for seamless event navigation. Update your app to access the latest networking tools.',
-                    style: TextStyle(fontSize: 12, color: Colors.grey[700], height: 1.5),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text('Learn more about the update', style: TextStyle(fontSize: 11, color: apexPrimary, fontWeight: FontWeight.w600)),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+    if (difference.inMinutes < 60) {
+      return '${difference.inMinutes}m ago';
+    } else if (difference.inHours < 24) {
+      return '${difference.inHours}h ago';
+    } else {
+      return DateFormat('MMM d').format(timestamp);
+    }
   }
 }

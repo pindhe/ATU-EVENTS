@@ -11,8 +11,6 @@ import '../../providers/event_provider.dart';
 import '../../providers/log_provider.dart';
 
 const Color apexPrimary = Color(0xFF5A67D8);
-const Color apexBg = Color(0xFFF8F9FF);
-const Color apexText = Color(0xFF0B1C30);
 
 class EventFormScreen extends StatefulWidget {
   final Event? event;
@@ -130,7 +128,7 @@ class _EventFormScreenState extends State<EventFormScreen> {
         endTime: _endTime,
         assignedClassId: _selectedClassId,
         maxParticipants: _maxParticipants,
-        visibility: _visibility,
+        visibility: authProvider.currentUser?.role == 'teacher' ? EventVisibility.local : _visibility,
         imageUrl: _imageFile?.path ?? (_urlController.text.isNotEmpty ? _urlController.text : widget.event?.imageUrl),
         price: _isPaid ? _price : 0,
         createdByUsername: authProvider.currentUser?.username ?? 'Admin',
@@ -169,13 +167,13 @@ class _EventFormScreenState extends State<EventFormScreen> {
     final myClasses = classProvider.getClassesForTeacher(authProvider.currentUser?.email ?? '');
 
     return Scaffold(
-      backgroundColor: apexBg,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: Text(widget.event == null ? 'Create Event' : 'Edit Event', 
-          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+          style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).cardColor)),
         backgroundColor: apexPrimary,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
+        iconTheme: IconThemeData(color: Theme.of(context).cardColor),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
@@ -230,81 +228,95 @@ class _EventFormScreenState extends State<EventFormScreen> {
                 ],
               ),
               const SizedBox(height: 32),
-              _buildSectionTitle('Pricing & Tickets'),
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15)),
-                child: Row(
+              const SizedBox(height: 32),
+              if (authProvider.currentUser?.role != 'teacher') ...[
+                _buildSectionTitle('Pricing & Tickets'),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).cardColor,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4))],
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(color: apexPrimary.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+                            child: const Icon(Icons.payments_outlined, color: apexPrimary, size: 20),
+                          ),
+                          const SizedBox(width: 16),
+                          const Text('Pricing Type', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                          const Spacer(),
+                          _buildPriceToggle(),
+                        ],
+                      ),
+                      if (_isPaid) ...[
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 16),
+                          child: Divider(),
+                        ),
+                        _buildTextField(
+                          label: 'Price (USD)',
+                          initialValue: _price?.toString(),
+                          icon: Icons.attach_money,
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          onSaved: (val) => _price = val != null && val.isNotEmpty ? double.tryParse(val) ?? 0 : 0,
+                          validator: (val) => _isPaid && (val == null || val.isEmpty) ? 'Required for paid events' : null,
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 32),
+                _buildSectionTitle('Settings'),
+                const SizedBox(height: 16),
+                Row(
                   children: [
-                    const Icon(Icons.payments_outlined, color: apexPrimary, size: 20),
-                    const SizedBox(width: 12),
-                    const Text('Event Price Type', style: TextStyle(fontWeight: FontWeight.w600)),
-                    const Spacer(),
-                    ChoiceChip(
-                      label: const Text('Free'),
-                      selected: !_isPaid,
-                      onSelected: (val) => setState(() => _isPaid = !val),
-                      selectedColor: apexPrimary.withOpacity(0.2),
-                      labelStyle: TextStyle(color: !_isPaid ? apexPrimary : Colors.grey, fontWeight: FontWeight.bold),
+                    Expanded(
+                      child: DropdownButtonFormField<EventVisibility>(
+                        value: _visibility,
+                        decoration: _inputDecoration('Visibility', Icons.visibility_outlined),
+                        items: EventVisibility.values.map((v) => DropdownMenuItem(
+                          value: v, child: Text(v.toString().split('.').last.toUpperCase(), style: const TextStyle(fontSize: 12)),
+                        )).toList(),
+                        onChanged: (val) => setState(() => _visibility = val!),
+                      ),
                     ),
-                    const SizedBox(width: 8),
-                    ChoiceChip(
-                      label: const Text('Paid'),
-                      selected: _isPaid,
-                      onSelected: (val) => setState(() => _isPaid = val),
-                      selectedColor: apexPrimary.withOpacity(0.2),
-                      labelStyle: TextStyle(color: _isPaid ? apexPrimary : Colors.grey, fontWeight: FontWeight.bold),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: _buildTextField(
+                        label: 'Max Capacity',
+                        initialValue: _maxParticipants?.toString(),
+                        icon: Icons.people_outline,
+                        keyboardType: TextInputType.number,
+                        onSaved: (val) => _maxParticipants = val != null && val.isNotEmpty ? int.parse(val) : null,
+                      ),
                     ),
                   ],
                 ),
-              ),
-              if (_isPaid) ...[
                 const SizedBox(height: 16),
-                _buildTextField(
-                  label: 'Price (USD)',
-                  initialValue: _price?.toString(),
-                  icon: Icons.attach_money,
-                  keyboardType: TextInputType.number,
-                  onSaved: (val) => _price = val != null && val.isNotEmpty ? double.parse(val) : 0,
-                ),
               ],
-              const SizedBox(height: 32),
-              _buildSectionTitle('Settings'),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: DropdownButtonFormField<EventVisibility>(
-                      value: _visibility,
-                      decoration: _inputDecoration('Visibility', Icons.visibility_outlined),
-                      items: EventVisibility.values.map((v) => DropdownMenuItem(
-                        value: v, child: Text(v.toString().split('.').last.toUpperCase(), style: const TextStyle(fontSize: 12)),
-                      )).toList(),
-                      onChanged: (val) => setState(() => _visibility = val!),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _buildTextField(
-                      label: 'Max Capacity',
-                      initialValue: _maxParticipants?.toString(),
-                      icon: Icons.people_outline,
-                      keyboardType: TextInputType.number,
-                      onSaved: (val) => _maxParticipants = val != null && val.isNotEmpty ? int.parse(val) : null,
-                    ),
-                  ),
-                ],
-              ),
+              _buildSectionTitle('Class Assignment'),
               const SizedBox(height: 16),
               DropdownButtonFormField<String?>(
                 value: _selectedClassId,
-                decoration: _inputDecoration('Assigned Class (Optional)', Icons.class_outlined),
+                decoration: _inputDecoration('Assigned Class ${authProvider.currentUser?.role == 'teacher' ? '(Required)' : '(Optional)'}', Icons.class_outlined),
                 items: [
-                  const DropdownMenuItem(value: null, child: Text('No Class / General', style: TextStyle(fontSize: 13))),
+                  if (authProvider.currentUser?.role != 'teacher')
+                    const DropdownMenuItem(value: null, child: Text('No Class / General', style: TextStyle(fontSize: 13))),
                   ...myClasses.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name, style: const TextStyle(fontSize: 13)))),
                 ],
                 onChanged: (val) => setState(() => _selectedClassId = val),
+                validator: (val) {
+                  if (authProvider.currentUser?.role == 'teacher' && val == null) {
+                    return 'Please select a class for this event';
+                  }
+                  return null;
+                },
               ),
               const SizedBox(height: 48),
               ElevatedButton(
@@ -317,7 +329,7 @@ class _EventFormScreenState extends State<EventFormScreen> {
                   shadowColor: apexPrimary.withOpacity(0.3),
                 ),
                 child: Text(widget.event == null ? 'Create Event' : 'Save Changes', 
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Theme.of(context).cardColor)),
               ),
               const SizedBox(height: 40),
             ],
@@ -328,7 +340,7 @@ class _EventFormScreenState extends State<EventFormScreen> {
   }
 
   Widget _buildSectionTitle(String title) {
-    return Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: apexText));
+    return Text(title, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black87));
   }
 
   Widget _buildTextField({required String label, String? initialValue, TextEditingController? controller, required IconData icon, int maxLines = 1, FormFieldSetter<String>? onSaved, FormFieldValidator<String>? validator, TextInputType? keyboardType, ValueChanged<String>? onChanged}) {
@@ -350,7 +362,7 @@ class _EventFormScreenState extends State<EventFormScreen> {
       prefixIcon: Icon(icon, color: apexPrimary, size: 20),
       labelStyle: const TextStyle(color: Colors.grey, fontSize: 14),
       filled: true,
-      fillColor: Colors.white,
+      fillColor: Theme.of(context).cardColor,
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
       enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
       focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: const BorderSide(color: apexPrimary, width: 1.5)),
@@ -362,7 +374,7 @@ class _EventFormScreenState extends State<EventFormScreen> {
       onTap: () => _selectDateTime(context, isStart),
       child: Container(
         padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15)),
+        decoration: BoxDecoration(color: Theme.of(context).cardColor, borderRadius: BorderRadius.circular(15)),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -375,13 +387,42 @@ class _EventFormScreenState extends State<EventFormScreen> {
     );
   }
 
+  Widget _buildPriceToggle() {
+    return Container(
+      decoration: BoxDecoration(color: Theme.of(context).scaffoldBackgroundColor, borderRadius: BorderRadius.circular(12)),
+      padding: const EdgeInsets.all(4),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _toggleItem('Free', !_isPaid, () => setState(() => _isPaid = false)),
+          _toggleItem('Paid', _isPaid, () => setState(() => _isPaid = true)),
+        ],
+      ),
+    );
+  }
+
+  Widget _toggleItem(String label, bool isSelected, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? apexPrimary : Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
+          boxShadow: isSelected ? [BoxShadow(color: apexPrimary.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 2))] : null,
+        ),
+        child: Text(label, style: TextStyle(color: isSelected ? Theme.of(context).cardColor : Colors.grey[600], fontWeight: FontWeight.bold, fontSize: 13)),
+      ),
+    );
+  }
+
   Widget _buildImagePicker() {
     return GestureDetector(
       onTap: _pickImage,
       child: Container(
         height: 220,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(25),
           boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 15, offset: const Offset(0, 5))],
         ),

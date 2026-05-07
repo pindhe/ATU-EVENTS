@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'dart:io';
 import '../../models/event.dart';
 import '../../providers/event_provider.dart';
 
@@ -53,9 +55,7 @@ class _EventListItemState extends State<EventListItem> {
                         child: widget.event.imageUrl != null
                             ? ClipRRect(
                                 borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-                                child: widget.event.imageUrl!.startsWith('http')
-                                    ? Image.network(widget.event.imageUrl!, fit: BoxFit.cover)
-                                    : Image.asset('assets/placeholder.png', fit: BoxFit.cover), // Fallback for local
+                                child: _buildImage(widget.event.imageUrl!),
                               )
                             : Icon(Icons.event, size: 60, color: theme.colorScheme.primary),
                       ),
@@ -127,6 +127,23 @@ class _EventListItemState extends State<EventListItem> {
     );
   }
 
+  Widget _buildImage(String url) {
+    if (url.startsWith('http') || url.startsWith('blob:')) {
+      return Image.network(url, fit: BoxFit.cover, errorBuilder: (context, error, stackTrace) => _placeholder());
+    } else if (kIsWeb) {
+      return Image.network(url, fit: BoxFit.cover, errorBuilder: (context, error, stackTrace) => _placeholder());
+    } else {
+      return Image.file(File(url), fit: BoxFit.cover, errorBuilder: (context, error, stackTrace) => _placeholder());
+    }
+  }
+
+  Widget _placeholder() {
+    return Container(
+      color: Colors.grey[200],
+      child: const Icon(Icons.broken_image_outlined, color: Colors.grey, size: 40),
+    );
+  }
+
   Widget _buildLikeButton(BuildContext context) {
     final eventProvider = Provider.of<EventProvider>(context, listen: false);
     return Container(
@@ -162,7 +179,6 @@ class _EventListItemState extends State<EventListItem> {
   }
 
   Widget _buildCategoryBadge(ThemeData theme, String label) {
-
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       decoration: BoxDecoration(
