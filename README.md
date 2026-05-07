@@ -1,6 +1,10 @@
 # 📌 ATU-EVENTS - README
 📖 Project Description
 
+<p align="center">
+  <img src="https://github.com/pindhe/Spin-Wheel-game/blob/main/Screenshot%202026-05-01%20181543.png?raw=true" width="900"/>
+</p>
+
 ATU-EVENTS waa Event Management System loogu talagalay in lagu maamulo events-ka jaamacadda/dugsiga. System-kan wuxuu isku daraa mobile app, web dashboard, iyo backend API si loo fududeeyo maamulka events-ka ardayda, macallimiinta, iyo admins-ka.
 
 🧱 Technologies Used
